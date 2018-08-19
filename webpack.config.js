@@ -5,16 +5,28 @@ const uglify = require('uglifyjs-webpack-plugin');
 const htmlPlugin = require('html-webpack-plugin');
 const extractTextPlugin = require('extract-text-webpack-plugin');
 const PurifyCSSPlugin = require('purifycss-webpack');
+const entry = require('./webpack_config/entry_webpack.js');
+const copyWebpackPlugin = require('copy-webpack-plugin');
 
-var website = {
-  publicPath: "http://192.168.0.196:1313/",
+console.log(encodeURIComponent(process.env.type));
+if(process.env.type=="build"){
+  var website = {
+    publicPath: "http://webwebweb.com:1313/"
+  }
+}else{
+  var website = {
+    publicPath: "http://192.168.0.196:1313/"
+  }
 }
+
+
 
 module.exports={
   devtool:'',
   entry:{
     entry:'./src/entry.js',
-    entry2:'./src/entry.js',
+    jquery:'jquery',
+    vue: 'vue'
   },
   output:{
     path:path.resolve(__dirname, 'dist'),
@@ -75,7 +87,18 @@ module.exports={
     ]
   },
   plugins:[
+    new webpack.optimize.CommonsChunkPlugin({
+      name: ['jquery', 'vue'], // 对应入口文件的jquery，单独抽离
+      filename: "assets/js/[name].js", // 抽离到的路径
+      minChunks: 2 // 最小抽离出两个文件
+    }),
+
+
+
     //new uglifyPlugin()
+    new webpack.ProvidePlugin({
+      $:"jquery"
+    }),
     new htmlPlugin({
       minify:{
         removeAttributeQuotes: true,
@@ -86,12 +109,23 @@ module.exports={
     new extractTextPlugin("css/index.css"),
     new PurifyCSSPlugin({
       paths:glob.sync(path.join(__dirname,'src/*.html'))
-    })
+    }),
+    new webpack.BannerPlugin('Museuseuse, practice.'),
+    new copyWebpackPlugin([{
+      from:__dirname+'/src/public', // 要打包的静态资源地址
+      to: './public'
+    }]),
+    new webpack.HotModuleReplacementPlugin()
   ],
   devServer:{
     contentBase:path.resolve(__dirname, 'dist'),
     host:'192.168.0.196',
     compress:true,
     port: 1313,
+  },
+  watchOptions:{
+    poll: 1000, // 1s更新一次
+    aggregeateTimeout: 500, // 半秒内重复打包只算一次
+    ignored:/node_modules/, // 忽视文件
   }
 }
